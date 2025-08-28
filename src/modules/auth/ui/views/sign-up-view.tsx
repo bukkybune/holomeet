@@ -4,6 +4,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { OctagonAlertIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +23,7 @@ import {
     FormMessage,
     Form
 } from "@/components/ui/form";
-import path from "path";
+
 
 const formSchema = z.object({
     name: z.string().min(1, { message: "Name is required" }),
@@ -36,45 +37,43 @@ const formSchema = z.object({
 })
 
 export const SignUpView = () => {
-    const router = useRouter();
-    const [error, setError] = useState<string | null>(null);
-    const [pending, setPending] = useState(false);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
-        defaultValues: {
-            name: "",
-            email: "",
-            password: "",
-            confirmPassword: ""
-        }
-    });
+  const form = useForm<z.infer<typeof formSchema>>({
+      resolver: zodResolver(formSchema),
+      defaultValues: {
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: ""
+      }
+  });
 
-    const onSubmit = (data: z.infer<typeof formSchema>) => {
-        setError(null);
-        setPending(true);
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+      setError(null);
+      setPending(true);
 
-        authClient.signUp.email(
-            {
-                name: data.name,
-                email: data.email,
-                password: data.password
-            },
-            {
-                onSuccess: () => {
-                    setPending(false);
-                    router.push("/");
-                    router.refresh();
-                },
-                onError: ({ error }) => {
-                    setError(error.message);
-                }
-
-            }
-        )
-
-
-    }
+      authClient.signUp.email(
+          {
+              name: data.name,
+              email: data.email,
+              password: data.password,
+              callbackURL: "/"
+          },
+          {
+              onSuccess: () => {
+                setPending(false);
+                router.push("/")
+              },
+              onError: ({ error }) => {
+                setPending(false); 
+                setError(error.message);
+              }
+          }
+      );
+  };
 
     return (
         <div className="flex flex-col gap-6">
@@ -93,7 +92,7 @@ export const SignUpView = () => {
                                 </div>
                                 
                                 <div className="grid gap-4">
-                                      <FormField
+                                    <FormField
                                         control={form.control}
                                         name="name"
                                         render={({ field }) => (
@@ -101,7 +100,7 @@ export const SignUpView = () => {
                                                 <FormLabel>Name</FormLabel>
                                                 <FormControl>
                                                     <Input 
-                                                        type="test"
+                                                        type="text"
                                                         placeholder="Bukola Salaki" 
                                                         {...field} 
                                                     />
@@ -190,21 +189,49 @@ export const SignUpView = () => {
                                 
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <Button
-                                        disabled={pending}
-                                        variant="outline"
-                                        type="button"
-                                        className="flex w-full items-center justify-center gap-2"
+                                      disabled={pending}
+                                      onClick={() => {
+                                          authClient.signIn.social({
+                                              provider: "google",
+                                              callbackURL: "/"
+                                          }, {
+                                              onSuccess: () => {
+                                                setPending(false);
+                                              },
+                                              onError: ({ error }) => {
+                                                setPending(false);
+                                                setError(error.message);
+                                              }
+                                          });
+                                      }}
+                                      variant="outline"
+                                      type="button"
+                                      className="flex w-full items-center justify-center gap-2"
                                     >
-                                        Google
+                                        <FaGoogle size={16} /> Google
                                     </Button>
 
                                     <Button
-                                        disabled={pending}
+                                      disabled={pending}
+                                      onClick={() => {
+                                        authClient.signIn.social({
+                                            provider: "github",
+                                            callbackURL: "/"
+                                        }, {
+                                            onSuccess: () => {
+                                              setPending(false);
+                                            },
+                                            onError: ({ error }) => {
+                                              setPending(false);
+                                              setError(error.message);
+                                            }
+                                        });
+                                      }}
                                         variant="outline"
                                         type="button"
                                         className="flex w-full items-center justify-center gap-2"
                                     >
-                                        GitHub
+                                        <FaGithub size={16} /> GitHub
                                     </Button>
                                 </div>
                                 
@@ -229,7 +256,7 @@ export const SignUpView = () => {
 
             <div className="text-muted-foreground text-center text-xs text-balance">
                 <span className="[&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-                    By signing in, you agree to our{" "}
+                    By signing up, you agree to our{" "}
                     <a href="#">Terms of Service</a> and{" "}
                     <a href="#">Privacy Policy</a>
                 </span>

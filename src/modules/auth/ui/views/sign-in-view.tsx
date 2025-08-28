@@ -4,9 +4,10 @@ import { z } from "zod";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 import { OctagonAlertIcon } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {useRouter} from "next/navigation";
 
        
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
     FormMessage,
     Form
 } from "@/components/ui/form";
+import { set } from "date-fns";
 
 const formSchema = z.object({
     email: z.string().email(),
@@ -49,15 +51,16 @@ export const SignInView = () => {
         authClient.signIn.email(
             {
                 email: data.email,
-                password: data.password
+                password: data.password,
+                callbackURL: "/"
             },
             {
                 onSuccess: () => {
-                    setPending(false);
                     router.push("/");
-                    router.refresh();
+                    setPending(false);
                 },
                 onError: ({ error }) => {
+                    setPending(false);
                     setError(error.message);
                 }
 
@@ -147,20 +150,48 @@ export const SignInView = () => {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <Button
                                         disabled={pending}
+                                        onClick={() => {
+                                            authClient.signIn.social({
+                                                provider: "google",
+                                                callbackURL: "/"
+                                            }, {
+                                                onSuccess: () => {
+                                                    setPending(false);
+                                                },
+                                                onError: ({ error }) => {
+                                                    setPending(false);
+                                                    setError(error.message);
+                                                }
+                                            });
+                                        }}
                                         variant="outline"
                                         type="button"
                                         className="flex w-full items-center justify-center gap-2"
                                     >
-                                        Google
+                                        <FaGoogle size={16} /> Google   
                                     </Button>
 
                                     <Button
                                         disabled={pending}
+                                        onClick={() => {
+                                            authClient.signIn.social({
+                                                provider: "github",
+                                                callbackURL: "/"
+                                            }, {
+                                                onSuccess: () => {
+                                                    setPending(false);
+                                                },
+                                                onError: ({ error }) => {
+                                                    setPending(false);
+                                                    setError(error.message);
+                                                }
+                                            });
+                                        }}
                                         variant="outline"
                                         type="button"
                                         className="flex w-full items-center justify-center gap-2"
                                     >
-                                        GitHub
+                                        <FaGithub size={16}/> GitHub
                                     </Button>
                                 </div>
                                 
