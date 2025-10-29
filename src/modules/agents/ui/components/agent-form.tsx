@@ -117,7 +117,7 @@ export const AgentForm = ({
                         <FormItem>
                             <FormLabel>Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Agent Name" {...field} />
+                                <Input placeholder="e.g Finance consultor" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -130,7 +130,7 @@ export const AgentForm = ({
                         <FormItem>
                             <FormLabel>Instructions</FormLabel>
                             <FormControl>
-                                <Input placeholder="You are a math tutor that helps with assignments" {...field} disabled={isPending} />
+                                <Input placeholder="You are a finance consultor designed to help me with my finances" {...field} disabled={isPending} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
