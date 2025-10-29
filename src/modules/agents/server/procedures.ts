@@ -136,6 +136,7 @@ export const agentsRouter = createTRPCRouter({
                     userId: ctx.auth.user.id,
                 })
                 .returning();
+            return createdAgent;
         }),
 
 });
