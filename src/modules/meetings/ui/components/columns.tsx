@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { hu } from "date-fns/locale"
+
 
 function formatDuration(seconds: number) {
   return humanizeDuration(seconds * 1000, {
@@ -31,7 +31,7 @@ const statusIconMap = {
   active: LoaderIcon,
   completed: CircleCheckIcon,
   processing: LoaderIcon,
-  cancelled: CircleXIcon,
+  canceled: CircleXIcon,
 };
 
 const statusColorMap = {
@@ -72,14 +72,14 @@ export const columns: ColumnDef<MeetingGetMany[number]>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const Icon = statusIconMap[row.original.status as keyof typeof statusIconMap];
+      const Icon = statusIconMap[row.original.status as keyof typeof statusIconMap] ?? CircleXIcon;
 
       return (
         <Badge
           variant="outline"
           className={cn(
             "capitalize [&>svg]:size-4 text-muted-foreground",
-            statusColorMap[row.original.status as keyof typeof statusColorMap]
+            statusColorMap[row.original.status as keyof typeof statusColorMap] ?? "bg-gray-500/20 text-gray-800 border-gray-800/5"
           )}
         >
           <Icon
@@ -101,7 +101,7 @@ export const columns: ColumnDef<MeetingGetMany[number]>[] = [
         className="capitalize [&>svg]:size-4 flex items-center gap-x-2"
       >
         <ClockFadingIcon className="text-blue-700"/>
-        {row.original.duration ? formatDuration(row.original.duration) : "No duration"}
+        {row.original.duration != null ? formatDuration(row.original.duration) : "No duration"}
       </Badge>
     )
   } 
