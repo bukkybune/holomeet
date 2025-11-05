@@ -20,7 +20,7 @@ export const MeetingIdView = ({ meetingId }: Props) => {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const [ UpdateMeetingDialogOpen, setUpdateMeetingDialogOpen] = useState(false);
+    const [ updateMeetingDialogOpen, setUpdateMeetingDialogOpen] = useState(false);
 
     const [RemoveConfirmation, confirmRemove] = useConfirm(
         "Are you sure you want to remove this meeting? This action cannot be undone.",
@@ -51,7 +51,7 @@ export const MeetingIdView = ({ meetingId }: Props) => {
         <>
             <RemoveConfirmation />
             <UpdateMeetingDialog
-                open={UpdateMeetingDialogOpen}
+                open={updateMeetingDialogOpen}
                 onOpenChange={setUpdateMeetingDialogOpen}
                 initialValues={data}
             />
