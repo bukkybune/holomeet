@@ -15,8 +15,6 @@ import {
 import { useTRPC } from "@/trpc/client";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
-import { user } from "@/db/schema";
-import { se } from "date-fns/locale";
 import { CallUI } from "./call-ui";
 
 interface Props {
