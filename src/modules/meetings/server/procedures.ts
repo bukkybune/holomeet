@@ -86,7 +86,7 @@ export const meetingsRouter = createTRPCRouter({
             
             await streamVideo.upsertUsers([
                 {
-                    id: existingAgent.id,
+                    id: `${existingAgent.userId}_agent_${existingAgent.id}`,
                     name: existingAgent.name,
                     role: "user",
                     image: generateAvatarUri({

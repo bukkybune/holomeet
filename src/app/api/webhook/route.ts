@@ -10,7 +10,10 @@ import {
 } from "@stream-io/node-sdk";
 import{ agents, meetings } from "@/db/schema";
 import { streamVideo } from "@/lib/stream-video";
-import { no } from "zod/v4/locales";
+import { inngest } from "@/inngest/client";
+
+// Store active realtime clients so they don't get garbage collected
+const activeRealtimeClients = new Map<string, any>();
 
 function verifySignatureWithSDK(body: string, signature: string ): boolean {
     return streamVideo.verifyWebhook(body, signature);
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
             // Ensure agent user exists in Stream
             console.log("Creating/updating agent user in Stream...");
             await streamVideo.upsertUsers([{
-                id: existingAgent.userId,
+                id: `${existingAgent.userId}_agent_${existingAgent.id}`,
                 role: "user",
                 name: "AI Agent",
             }]);
@@ -111,16 +114,49 @@ export async function POST(req: NextRequest) {
             const realtimeClient = await streamVideo.video.connectOpenAi({
                 call,
                 openAiApiKey: process.env.OPENAI_API_KEY!,
-                agentUserId: existingAgent.userId,
+                agentUserId: `${existingAgent.userId}_agent_${existingAgent.id}`,
             });
 
             console.log("✅ OpenAI connected successfully!");
             
-            realtimeClient.updateSession({
+            await realtimeClient.updateSession({
                 instructions: existingAgent.instructions,
+                voice: 'alloy',
+                turn_detection: { 
+                    type: 'server_vad',
+                    threshold: 0.5,
+                    prefix_padding_ms: 300,
+                    silence_duration_ms: 500
+                },
+                input_audio_transcription: {
+                    model: 'whisper-1'
+                }
             });
             
             console.log("✅ Session instructions updated");
+
+            // Add event listeners to track agent responses
+            realtimeClient.on('conversation.item.created', (event: any) => {
+                console.log('💬 Conversation item created:', event.item?.type);
+            });
+
+            realtimeClient.on('response.audio.delta', (event: any) => {
+                console.log('🔊 Audio delta received');
+            });
+
+            realtimeClient.on('response.done', (event: any) => {
+                console.log('✅ Agent response complete');
+            });
+
+            realtimeClient.on('error', (event: any) => {
+                console.error('❌ OpenAI Realtime error:', event);
+            });
+
+            // Store the client so it doesn't get garbage collected
+            activeRealtimeClients.set(meetingId, realtimeClient);
+            console.log(`📦 Stored realtime client for meeting ${meetingId}`);
+            console.log(`📊 Active clients: ${activeRealtimeClients.size}`);
+
         } catch (error) {
             console.error("❌ ERROR in call.session_started:", error);
             return NextResponse.json(
@@ -136,15 +172,79 @@ export async function POST(req: NextRequest) {
         const event = payload as CallSessionParticipantLeftEvent;
         const meetingId = event.call_cid.split(":")[1];
 
+        console.log("Participant that left:", JSON.stringify(event.participant));
+
         if (!meetingId) {
             return NextResponse.json({ error: "Missing meeting ID in call CID" }, { status: 400 });
         }
 
-        console.log("Ending call for meeting:", meetingId);
         const call = streamVideo.video.call("default", meetingId);
         await call.end();
-        console.log("✅ Call ended");
+        
+    } else if (eventType === "call.session_ended") {
+        const event = payload as CallEndedEvent;
+        const meetingId = event.call.custom?.meetingId;
+
+        if (!meetingId) {
+            return NextResponse.json({ error: "Missing meeting ID in call custom data" }, { status: 400 });
+        }
+
+        // Clean up the realtime client
+        const client = activeRealtimeClients.get(meetingId);
+        if (client) {
+            console.log(`🧹 Cleaning up realtime client on call end for ${meetingId}`);
+            try {
+                await client.disconnect();
+            } catch (error) {
+                console.error("Error disconnecting client:", error);
+            }
+            activeRealtimeClients.delete(meetingId);
+        }
+
+        await db
+            .update(meetings)
+            .set({
+                status: "processing",
+                endedAt: new Date(),
+            })
+            .where(and(eq(meetings.id, meetingId), eq(meetings.status, "active")));
+
+    } else if (eventType === "call.transcription_ready") {
+        const event = payload as CallTranscriptionReadyEvent;
+        const meetingId = event.call_cid.split(":")[1];
+
+        const [updatedMeeting] = await db
+            .update(meetings)
+            .set({
+                transcriptUrl: event.call_transcription.url,
+            })
+            .where(and(eq(meetings.id, meetingId)))
+            .returning();
+
+        if (!updatedMeeting) {
+            return NextResponse.json({ error: "Meeting not found for transcription update" }, { status: 404 });
+        }
+        
+        await inngest.send({
+            name: "meetings/processing",
+            data: {
+                meetingId: updatedMeeting.id,
+                transcriptUrl: updatedMeeting.transcriptUrl,
+            },
+        });
+
+    } else if (eventType === "call.recording_ready") {
+        const event = payload as CallRecordingReadyEvent;
+        const meetingId = event.call_cid.split(":")[1];
+
+        await db
+            .update(meetings)
+            .set({
+                recordingUrl: event.call_recording.url,
+            })
+            .where(and(eq(meetings.id, meetingId)));
     }
+    
 
     return NextResponse.json({ status: "ok" });
 }
