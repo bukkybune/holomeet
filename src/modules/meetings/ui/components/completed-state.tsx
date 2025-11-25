@@ -98,13 +98,13 @@ export const CompletedState = ({ data }: Props) => {
                                             <h1 className="text-2xl font-medium mb-6" {...props} />
                                         ),
                                         h2: ({...props}) => (
-                                            <h1 className="text-xl font-medium mb-6" {...props} />
+                                            <h2 className="text-xl font-medium mb-6" {...props} />
                                         ),
                                         h3: ({...props}) => (
-                                            <h1 className="text-lg font-medium mb-6" {...props} />
+                                            <h3 className="text-lg font-medium mb-6" {...props} />
                                         ),
                                         h4: ({...props}) => (
-                                            <h1 className="text-base font-medium mb-6" {...props} />
+                                            <h4 className="text-base font-medium mb-6" {...props} />
                                         ),
                                         p: ({...props}) => (
                                             <p className="mb-6 leading-relaxed" {...props} />
